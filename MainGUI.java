@@ -1,5 +1,10 @@
 package logassist;
-
+/*
+ * The MainGUI.java file contains all code necessary to run a program that allows you to choose a text based log file and display it's 
+ * contents within the application. The end goal is to have a list of buttons that when clicked, will automatically parse through the 
+ * selected log file and display only the relevant lines using the logic triggered by the selected button. This application could aid 
+ * technical support analysts with quickly identifying important information in logs to help troubleshoot issues.
+ */
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -16,9 +21,11 @@ public class MainGUI
     private JPanel contentPane; //contents of all regions goes in here
     private JTextArea logDisplay;
     private JScrollPane scrollArea;
-    private JButton logButton, funcButton, clearButton;
+    private JButton logButton, funcButton, clearButton, errorsButton;
     private File currentFile;
     private String line;
+    Scanner scan = null;
+    PrintStream parsedLogs = null;
     
     public static void main (String [] args) 
     {
@@ -160,7 +167,10 @@ public class MainGUI
     	panel.add(funcButton);
     	funcButton.addActionListener(new LogParseButtonsListener());
     	
-    	panel.add(new JButton("Errors"));
+    	errorsButton = new JButton("Dispatcher Errors");
+    	panel.add(errorsButton);
+    	errorsButton.addActionListener(new LogParseButtonsListener());
+    	
     	panel.add(new JButton("Patches"));
     	contentPane.add(panel,BorderLayout.CENTER);
     }
@@ -222,12 +232,9 @@ public class MainGUI
     
     private class LoadLogFileListener implements ActionListener
     {
-    	//private File currentFile;
-    	
     	
     	public void actionPerformed(ActionEvent e)
     	{
-    		StringBuilder sb = new StringBuilder();
     		// file chooser box with filter on text files
         	JFileChooser fc = new JFileChooser();
         	FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Files", "txt", "out", "log");
@@ -248,6 +255,26 @@ public class MainGUI
         	{
         		System.out.println("*** I/O Error ***\n" + fnfe);
         	}
+        	
+        	// Write file contents from file chosen based on path stored in "filename" into designated text file
+        	try
+        	{
+        		scan = new Scanner(new BufferedReader(new FileReader(filename)));
+        		parsedLogs = new PrintStream("ParsedLogs.txt");
+        		while (scan.hasNextLine())
+        		{
+        			line = scan.nextLine();
+        			//if (line.contains("Error"))
+        			parsedLogs.println(line);
+        		}
+        		scan.close();
+        		parsedLogs.close();
+
+        	}
+        	catch (IOException se)
+        	{
+        		System.out.println("*** I/O Error in Parse file creation.***\n" + se);
+        	}
     	}
     }
     
@@ -255,12 +282,37 @@ public class MainGUI
     {
     	public void actionPerformed(ActionEvent e)
     	{
-    		
-    		if (e.getSource() == clearButton)
-    			logDisplay.setText("");
-    		else if (e.getSource() == funcButton)
-    			logDisplay.setText("");
-    			
+    		try
+    		{
+    			//logic here to parse lines and display based on printstream arguments
+    			scan = new Scanner(new File("ParsedLogs.txt")); //scans contents of this file
+    			//PrintStream below creates new file to store parsed results into new file
+    			PrintStream parsedLogs2 = new PrintStream("ParsedLogs2.txt"); 
+    			if (e.getSource() == clearButton)
+    				logDisplay.setText("");
+    			else if (e.getSource() == funcButton)
+
+    				while (scan.hasNextLine())
+    				{
+    					line = scan.nextLine();
+    					if (line.contains("Func="))
+    					parsedLogs2.println(line);	
+    				}
+				else if (e.getSource() == errorsButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("Dispatcher"))
+						parsedLogs2.println(line);
+				    }
+    		scan.close();
+    		parsedLogs2.close();
+    		}
+    		catch (IOException pe)
+    		{
+    			System.out.println("*** I/O Error in File Parsing ***\n" + pe);
+    		}
+    		return;	
     	}
     }
 }
