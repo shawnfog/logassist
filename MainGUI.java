@@ -21,7 +21,7 @@ public class MainGUI
     private JPanel contentPane; //contents of all regions goes in here
     private JTextArea logDisplay;
     private JScrollPane scrollArea;
-    private JButton logButton, funcButton, clearButton, errorsButton;
+    private JButton logButton, funcButton, clearButton, errorsButton, patchesButton, patListButton;
     private File currentFile;
     private String line;
     Scanner scan = null;
@@ -171,7 +171,14 @@ public class MainGUI
     	panel.add(errorsButton);
     	errorsButton.addActionListener(new LogParseButtonsListener());
     	
-    	panel.add(new JButton("Patches"));
+    	patchesButton = new JButton("Patch Detail");
+    	panel.add(patchesButton);
+    	patchesButton.addActionListener(new LogParseButtonsListener());
+    	
+    	patListButton = new JButton("Patch List");
+    	panel.add(patListButton);
+    	patListButton.addActionListener(new LogParseButtonsListener());
+    	
     	contentPane.add(panel,BorderLayout.CENTER);
     }
     
@@ -296,7 +303,9 @@ public class MainGUI
     				{
     					line = scan.nextLine();
     					if (line.contains("Func="))
-    					parsedLogs2.println(line);	
+    					parsedLogs2.println(line);
+    					FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
     				}
 				else if (e.getSource() == errorsButton)
 				    while (scan.hasNextLine())
@@ -304,6 +313,26 @@ public class MainGUI
 					    line = scan.nextLine();
 						if (line.contains("Dispatcher"))
 						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == patchesButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.indexOf("Comment") > 23) //text Comment must appear 23 or more char spaces from left
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == patListButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.indexOf("Patch PAT") > 31) // text must appear 31 or more char space fr left
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
 				    }
     		scan.close();
     		parsedLogs2.close();
