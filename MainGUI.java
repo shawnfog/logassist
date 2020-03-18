@@ -21,7 +21,8 @@ public class MainGUI
     private JPanel contentPane; //contents of all regions goes in here
     private JTextArea logDisplay;
     private JScrollPane scrollArea;
-    private JButton logButton, funcButton, clearButton, errorsButton, patchesButton, patListButton;
+    private JButton logButton, funcButton, clearButton, errorsButton, patchesButton, patListButton, genErrButton,
+    soapButton, restButton, traceButton, wfButton, crtButton, dberrButton, dawfButton;
     private File currentFile;
     private String line;
     Scanner scan = null;
@@ -43,7 +44,8 @@ public class MainGUI
         makeMenus();
         makeContent();
         
-        frame.pack();
+        //frame.pack();
+        frame.setSize(1000, 700);
         frame.setVisible(true);
     }
     
@@ -178,6 +180,38 @@ public class MainGUI
     	patListButton = new JButton("Patch List");
     	panel.add(patListButton);
     	patListButton.addActionListener(new LogParseButtonsListener());
+    	
+    	genErrButton = new JButton("All Errors");
+    	panel.add(genErrButton);
+    	genErrButton.addActionListener(new LogParseButtonsListener());
+    	
+    	soapButton = new JButton("CWS Issues");
+    	panel.add(soapButton);
+    	soapButton.addActionListener(new LogParseButtonsListener());
+    	
+    	restButton = new JButton("REST Issues");
+    	panel.add(restButton);
+    	restButton.addActionListener(new LogParseButtonsListener());
+    	
+    	traceButton = new JButton("Trace log");
+    	panel.add(traceButton);
+    	traceButton.addActionListener(new LogParseButtonsListener());
+    	
+    	wfButton = new JButton("Workflow");
+    	panel.add(wfButton);
+    	wfButton.addActionListener(new LogParseButtonsListener());
+    	
+    	crtButton = new JButton("CRT Issues");
+    	panel.add(crtButton);
+    	crtButton.addActionListener(new LogParseButtonsListener());
+    	
+    	dberrButton = new JButton("DB Errors");
+    	panel.add(dberrButton);
+    	dberrButton.addActionListener(new LogParseButtonsListener());
+    	
+    	dawfButton = new JButton("DA Agent Workflow");
+    	panel.add(dawfButton);
+    	dawfButton.addActionListener(new LogParseButtonsListener());
     	
     	contentPane.add(panel,BorderLayout.CENTER);
     }
@@ -334,6 +368,88 @@ public class MainGUI
 						FileReader reader = new FileReader("ParsedLogs2.txt");
     					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
 				    }
+				else if (e.getSource() == genErrButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (!line.contains("Comment:") && line.contains("error") ) //exclude errors from patch comments
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == soapButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (!line.contains("Args.") && line.contains("inArgs: A") || line.contains("outArgs: A")
+						|| line.contains("Arguments =") || line.contains("[E") || line.contains("DocMan.AttributeGroup")) //api logs
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == restButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("inArgs:") || line.contains("outArgs:")
+						|| line.contains("Arguments =") || line.contains("PATH_INFO = '/api/")) //REST logs
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == traceButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("Created trace log:")) //indication of trace file in thread log
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == wfButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("work.taskdone") || line.contains("Select * from wsubworktask where subworktask_workid")
+						|| line.contains("dbo.WLock"))
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+    			
+				else if (e.getSource() == crtButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("crt.validateloadsheet") || line.contains("crt.uploadfiletocontentserver")
+						|| line.contains("crt.getloadfile") || line.contains("crt.getloadfile") || line.contains("crt.bulkloadresults")
+						|| line.contains(".ListRevisions") || line.contains("BulkLoadStatusID ="))
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == dberrButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.indexOf("ORA-") > 22 || line.contains("[Microsoft][ODBC SQL Server Driver][SQL Server]")
+						|| line.contains("error executing an sql statement")) 
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == dawfButton)
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("Starting task WFMAIN_") || line.contains("'QueueTime'")
+						|| line.contains("'Priority=60'") || line.contains("'WorkerID'") || line.contains("SubWork_Title")
+						|| line.contains("SubWork_SubWorkID") || line.contains("SubWorkTask_Title") || line.contains("execute item handler step for Work_WorkID")) 
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+    			
     		scan.close();
     		parsedLogs2.close();
     		}
