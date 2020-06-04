@@ -1,4 +1,3 @@
-package logassist;
 /*
  * The MainGUI.java file contains all code necessary to run a program that allows you to choose a text based log file and display it's 
  * contents within the application. The end goal is to have a list of buttons that when clicked, will automatically parse through the 
@@ -9,9 +8,9 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
 import java.io.*;
 import java.util.Scanner;
+import java.util.regex.*;
 
 public class MainGUI
 {
@@ -19,12 +18,12 @@ public class MainGUI
     private JFrame frame; // primary window frame
     
     private JPanel contentPane; //contents of all regions goes in here
-    private JTextArea logDisplay;
+    private JTextArea logDisplay, fileNameDisplay;
     private JScrollPane scrollArea;
     private JButton logButton, funcButton, clearButton, errorsButton, patchesButton, patListButton, genErrButton,
-    soapButton, restButton, traceButton, wfButton, crtButton, dberrButton, dawfButton;
+    soapButton, restButton, traceButton, wfButton, crtButton, dberrButton, dawfButton, wrButton, customizedButton, regExButton;
     private File currentFile;
-    private String line;
+    private String line, lineSaveToFile, userInputTest; //userInputTest for TESTING ONLY
     Scanner scan = null;
     PrintStream parsedLogs = null;
     
@@ -69,7 +68,7 @@ public class MainGUI
         menu.setMnemonic(KeyEvent.VK_F);
         
         // add New menu item
-        menuItem = new JMenuItem("Menu Item Stub 1");
+        menuItem = new JMenuItem("Menu stub item 1");
         menuItem.setMnemonic(KeyEvent.VK_N);
         menuItem.addActionListener(new NewListener());
         menuItem.setAccelerator(
@@ -78,7 +77,7 @@ public class MainGUI
         menu.add(menuItem);
           
         // add Save menu item
-        menuItem = new JMenuItem("Menu Item Stub 2");
+        menuItem = new JMenuItem("Save currently displayed log to 'SavedLog' file");
         menuItem.setMnemonic(KeyEvent.VK_S);
         menuItem.addActionListener(new SaveListener());
         menuItem.setAccelerator(
@@ -148,11 +147,25 @@ public class MainGUI
     
     private void makeNorthRegion()
     {
+    	contentPane.setLayout(new BorderLayout(6,6)); // border gab sizes for this panel
+    	
     	JPanel panel = new JPanel();
     	panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+    	panel.setBorder(BorderFactory.createTitledBorder("Log selection options   |   Path of loaded log file"));
     	logButton = new JButton("Choose Log File");
+    	logButton.setForeground(Color.BLUE);
     	panel.add(logButton);
-    	logButton.addActionListener(new LoadLogFileListener());   	
+    	logButton.addActionListener(new LoadLogFileListener());
+    	
+    	// display text area to display selected log file name
+    	fileNameDisplay = new JTextArea();
+    	panel.add(fileNameDisplay); 
+    	fileNameDisplay.setMaximumSize(new Dimension(800,24)); //set fixed size x, y axis for the this text area only
+    	
+    	 /* get and display image in NORTH region - to be implemented later
+        JLabel imgLabel = new JLabel(new ImageIcon("L08-06.jpg"), JLabel.CENTER);
+        contentPane.add(imgLabel, BorderLayout.NORTH); */
+
     	contentPane.add(panel,BorderLayout.NORTH);
     }
     
@@ -160,58 +173,90 @@ public class MainGUI
     {
     	JPanel panel = new JPanel();
     	panel.setLayout(new FlowLayout());
+    	panel.setBorder(BorderFactory.createTitledBorder("Press a button to display the relevent logs  |  Hover mouse over for description    Note: UI may be unresponsive while processing"));
     	
     	clearButton = new JButton("Clear Log");
+    	clearButton.setForeground(Color.BLUE);
     	panel.add(clearButton);
     	clearButton.addActionListener(new LogParseButtonsListener());
     	
     	funcButton = new JButton("All Functions");
     	panel.add(funcButton);
+    	funcButton.setToolTipText("Uses regex to find/display all lines that contain request data, action data, obj type data related to functions");
     	funcButton.addActionListener(new LogParseButtonsListener());
     	
     	errorsButton = new JButton("Dispatcher Errors");
     	panel.add(errorsButton);
+    	errorsButton.setToolTipText("Finds details behind the errors seen in the GUI of CS as they often manifest as a dispatcher type error in the logs");
     	errorsButton.addActionListener(new LogParseButtonsListener());
     	
     	patchesButton = new JButton("Patch Detail");
     	panel.add(patchesButton);
+    	patchesButton.setToolTipText("Displays all the patch comments including JIRA #, applicable version, list of fixes for cumulatives. More than just patch list.");
     	patchesButton.addActionListener(new LogParseButtonsListener());
     	
     	patListButton = new JButton("Patch List");
     	panel.add(patListButton);
+    	patListButton.setToolTipText("Displays only patch numbers");
     	patListButton.addActionListener(new LogParseButtonsListener());
     	
     	genErrButton = new JButton("All Errors");
     	panel.add(genErrButton);
+    	genErrButton.setToolTipText("Looks for any indications of errors in the logs. Good for a quick health check or if you are not sure what the error looks like");
     	genErrButton.addActionListener(new LogParseButtonsListener());
     	
     	soapButton = new JButton("CWS Issues");
     	panel.add(soapButton);
+    	soapButton.setToolTipText("Finds SDK related issues with external apps connecting to CS via Content Web Services API");
     	soapButton.addActionListener(new LogParseButtonsListener());
     	
     	restButton = new JButton("REST Issues");
     	panel.add(restButton);
+    	restButton.setToolTipText("Finds SDK related issues with external apps connecting to CS via REST API");
     	restButton.addActionListener(new LogParseButtonsListener());
     	
     	traceButton = new JButton("Trace log");
     	panel.add(traceButton);
+    	traceButton.setToolTipText("Tells you if there is any trace files created. If you see it return something, go look at the actual trace log for more");
     	traceButton.addActionListener(new LogParseButtonsListener());
     	
     	wfButton = new JButton("Workflow");
     	panel.add(wfButton);
+    	wfButton.setToolTipText("Tries to find key data points related to workflow processing activities");
     	wfButton.addActionListener(new LogParseButtonsListener());
     	
     	crtButton = new JButton("CRT Issues");
     	panel.add(crtButton);
+    	crtButton.setToolTipText("Tries to find key data points related to CRT / Engineering issues");
     	crtButton.addActionListener(new LogParseButtonsListener());
     	
     	dberrButton = new JButton("DB Errors");
     	panel.add(dberrButton);
+    	dberrButton.setToolTipText("Looks for lines containing any ORA or ODBC sql errors");
     	dberrButton.addActionListener(new LogParseButtonsListener());
     	
     	dawfButton = new JButton("DA Agent Workflow");
     	panel.add(dawfButton);
+    	dawfButton.setToolTipText("Load a 'distributedagentxxxxx' thread log and this button will provide workflow related info from the DA");
     	dawfButton.addActionListener(new LogParseButtonsListener());
+    	
+    	wrButton = new JButton("WebReports");
+    	panel.add(wrButton);
+    	wrButton.setToolTipText("Finds data points such as triggers, ojbid, rkt engine and all types of function lines related to WebReports."
+    			+ "Note: WRs don't hold much info in threads, use this to identify where to follow the details in corresponding connect log");
+    	wrButton.addActionListener(new LogParseButtonsListener());
+    	
+    	customizedButton = new JButton("Customizations");
+    	panel.add(customizedButton);
+    	customizedButton.setToolTipText("Searches known indicators of customizations installed in the system");
+    	customizedButton.addActionListener(new LogParseButtonsListener());
+    	
+    	// *** FOR TESTING ONLY
+    	regExButton = new JButton("Regex Test");
+    	panel.add(regExButton);
+    	regExButton.setToolTipText("EXPERIMENTAL - TESTING PURPOSES ONLY");
+    	regExButton.addActionListener(new LogParseButtonsListener());
+    	
     	
     	contentPane.add(panel,BorderLayout.CENTER);
     }
@@ -221,7 +266,7 @@ public class MainGUI
     	JPanel panel = new JPanel();
     
     	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-    	panel.setBorder(BorderFactory.createTitledBorder("Parsed Data from Log File Read"));
+    	panel.setBorder(BorderFactory.createTitledBorder("Parsed data from log file read    TIP: Use ctrl+c on selected text to easily copy out"));
     	
     	   // create a text area to display data: need to make a "sub" panel to hold text area within this panel
     	JPanel smallPanel = new JPanel();
@@ -265,9 +310,28 @@ public class MainGUI
         public void actionPerformed(ActionEvent ae)
         {
             JOptionPane.showMessageDialog(frame, 
-                    "The  File > Save  menu option was clicked", 
-                    "place holder", 
+                    "A copy of last parsed log lines are saved in the", 
+                    "parsedlogs2 file in same dir as this app",
                     JOptionPane.INFORMATION_MESSAGE);
+     
+            try
+            {
+            	// read parsedlogs2 file and save whatever data in this file when actionlistener fires to the SavedLogs.txt file
+            	scan = new Scanner(new File("ParsedLogs2.txt"));
+            	PrintStream savedLogs = new PrintStream("SavedLogs.txt");
+            	while (scan.hasNextLine())
+            	{
+            		lineSaveToFile = scan.nextLine();
+            		savedLogs.println(lineSaveToFile);
+            	}
+            	scan.close(); // to always explicitely close scan resource to prevent memory leak
+                savedLogs.close();
+            }
+            catch (IOException e)
+            {
+            	System.out.println("Error Creating SavedLogs file" + e);
+            }
+
         }
     }  
     
@@ -278,15 +342,25 @@ public class MainGUI
     	{
     		// file chooser box with filter on text files
         	JFileChooser fc = new JFileChooser();
+        	
         	FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Files", "txt", "out", "log");
         	fc.setFileFilter(filter);
-        	fc.showOpenDialog(frame);
-        	currentFile = fc.getSelectedFile();
+        	int result = fc.showOpenDialog(frame);
+        	if (result == JFileChooser.APPROVE_OPTION) {
+        		currentFile = fc.getSelectedFile();
+        		
+        		// Display Path and name of file selected into GUI (next 3 lines for this functionality)
+        		File fn = fc.getSelectedFile(); // File object initiated for correct type for compatibility of datatype for JTextArea and setText methods.
+        		String strFileName = fn.getAbsolutePath(); // get path of file selected and assign it to the dedicated strFileName var
+        		fileNameDisplay.setText(strFileName); // pass filename string as argument to the setText method to display in GUI for user
+        	}
+        	else System.exit(0);
+        	
         	String filename = currentFile.getAbsolutePath(); // last 2 lines here stores the path to actual file that next lines will read
         	// in the try block below
         	
         	try 
-        	{
+        	{    // obtain data from saved file, take it from buffer and display it in jtextarea "logDisplay"
         		FileReader reader = new FileReader(filename);
         		BufferedReader br = new BufferedReader(reader);
         		logDisplay.read(br, null);
@@ -308,7 +382,7 @@ public class MainGUI
         			//if (line.contains("Error"))
         			parsedLogs.println(line);
         		}
-        		scan.close();
+        		scan.close(); // to always explicitely close scan resource to prevent memory leak
         		parsedLogs.close();
 
         	}
@@ -335,8 +409,10 @@ public class MainGUI
 
     				while (scan.hasNextLine())
     				{
+    					// for matches method, it uses regex where the pattern passed in must match the entire line identically. ".+" means any string value may appear
+    					// in the location in which this regex is specified in the line matcher
     					line = scan.nextLine();
-    					if (line.contains("Func="))
+    					if (line.matches(".+Func='ll..+..+") | line.matches(".+func=ll..+") | line.matches(".+func=.+&objaction=.+") | line.matches(".+Func='.+'.+"))
     					parsedLogs2.println(line);
     					FileReader reader = new FileReader("ParsedLogs2.txt");
     					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
@@ -449,6 +525,50 @@ public class MainGUI
 						FileReader reader = new FileReader("ParsedLogs2.txt");
     					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
 				    }
+				else if (e.getSource() == wrButton) // finds data points related to execution of WebReports
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.contains("**************  RKTEngine") || line.contains("reportview_content = '") || line.contains("objAction = 'RunReport'") ||
+						line.matches(".+.runreport'.+") || line.contains("&objAction=RunReport") || line.contains("WebReports Agent: WebReport Agent: Running report") ||
+						line.matches(".+Func='ll..+.WRTrigger'.+") || line.contains("Trigger_1_Path =") || line.contains("Triggers_1_list =")) 
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == customizedButton) // finds indications of 3rd party customizations
+				    while (scan.hasNextLine())
+				    {
+					    line = scan.nextLine();
+						if (line.indexOf("Module:") < 38 || line.indexOf("Author:") < 1  || line.indexOf("Company:") < 1 || line.indexOf("Creation Date:") < 1
+						|| line.contains("gci") || line.contains("Fastman") || line.contains("Global Cents") || line.contains("imagelinks") || line.contains("answers")
+						|| line.contains("kinematik"))
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+				else if (e.getSource() == regExButton) //testing regex and user input
+				    while (scan.hasNextLine())
+				    {
+				    /*	userInputTest = "func=";
+				    	
+					    line = scan.nextLine();
+					    //TEST for text stored in variable
+						if (line.contains(userInputTest))
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+    					*/
+				    	
+				    	line = scan.nextLine();
+					    //regex test - argument must match entire line
+						if (line.matches(".+Func='ll..+.WRTrigger'.+"))
+						parsedLogs2.println(line);
+						FileReader reader = new FileReader("ParsedLogs2.txt");
+    					logDisplay.read(reader, "ParsedLogs2.txt"); //Object of JTextArea
+				    }
+    			
+    			
     			
     		scan.close();
     		parsedLogs2.close();
@@ -461,3 +581,4 @@ public class MainGUI
     	}
     }
 }
+
